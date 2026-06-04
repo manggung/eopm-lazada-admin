@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회송스캔 어드민</title>
+  <style>
+    :root {
+      --primary:#3f434b;
+      --primary-hover:#2f333a;
+      --bg:#f1f1f1;
+      --card:#fff;
+      --border:#c5c7cf;
+      --text:#111827;
+      --subtext:#4b5563;
+      --link:#204da7;
+      --thead1:#737595;
+      --thead2:#545773;
+      --even:#fbfbfd;
+      --hover:#eef2f8;
+      --nav:#33383d;
+      --nav-active:#2b66c8;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:'Noto Sans KR', Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:12px;
+    }
+    .eopm-topbar { height:42px; background:var(--nav); color:#fff; display:flex; align-items:stretch; }
+    .eopm-logo { width:120px; padding:0 18px; font-size:24px; font-weight:800; display:flex; align-items:center; }
+    .eopm-menu { display:flex; flex:1; }
+    .eopm-menu-item { min-width:130px; display:flex; align-items:center; justify-content:center; border-left:1px solid rgba(255,255,255,.08); color:#fff; font-size:14px; font-weight:700; }
+    .eopm-menu-item.active { background:var(--nav-active); }
+    .eopm-user { display:flex; align-items:center; gap:10px; padding:0 16px; font-size:11px; }
+    .eopm-logout { border:1px solid #666; background:#4a4d53; color:#fff; height:24px; padding:0 10px; }
+    .page { padding:12px; }
+    .card { background:var(--card); border:1px solid var(--border); padding:10px 12px; margin-bottom:8px; }
+    .scan-row { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; margin-bottom:6px; }
+    .scan-label { min-width:110px; font-weight:700; }
+    .scan-group { display:flex; gap:6px; align-items:center; }
+    input[type="text"], input[type="date"], select { height:24px; border:1px solid #b9bcc5; padding:0 6px; font:inherit; color:inherit; background:#fff; }
+    button { height:24px; border:1px solid #6b7280; padding:0 10px; font:inherit; cursor:pointer; }
+    button:disabled { opacity:.45; cursor:default; }
+    .btn-primary { background:var(--primary); color:#fff; border-color:#2d3137; }
+    .btn-primary:hover:not(:disabled) { background:var(--primary-hover); }
+    .btn-secondary { background:linear-gradient(180deg,#fff 0%,#eceef2 100%); color:#2f3440; border-color:#9da3ad; }
+    .btn-small { height:22px; }
+    .w-260 { min-width:260px; }
+    .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .list-tools { display:flex; gap:6px; align-items:center; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--border); background:#fff; }
+    table { width:100%; min-width:1860px; border-collapse:collapse; }
+    th, td { padding:6px 8px; border-right:1px solid #c9ccd4; border-bottom:1px solid #d6d8df; text-align:left; white-space:nowrap; }
+    th:last-child, td:last-child { border-right:none; }
+    th { background:linear-gradient(180deg,var(--thead1) 0%,var(--thead2) 100%); color:#fff; font-weight:400; }
+    tbody tr:nth-child(even) { background:var(--even); }
+    tbody tr:hover { background:var(--hover); }
+    .center { text-align:center; }
+    .right { text-align:right; }
+    .scan-input { width:200px; }
+    .toast {
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      background:rgba(17,24,39,.94);
+      color:#fff;
+      padding:10px 12px;
+      font-size:12px;
+      opacity:0;
+      transform:translateY(12px);
+      pointer-events:none;
+      transition:opacity .2s ease, transform .2s ease;
+      z-index:1100;
+    }
+    .toast.show { opacity:1; transform:translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="eopm-topbar">
+    <div class="eopm-logo">EOPM</div>
+    <div class="eopm-menu">
+      <div class="eopm-menu-item active">입고</div>
+      <div class="eopm-menu-item">합포장</div>
+      <div class="eopm-menu-item">발송</div>
+      <div class="eopm-menu-item">기타</div>
+      <div class="eopm-menu-item">관리</div>
+    </div>
+    <div class="eopm-user">
+      <span>soomchoi 님</span>
+      <button type="button" class="eopm-logout">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <section class="card">
+      <h1 style="margin:0 0 8px; font-size:16px;">회송스캔</h1>
+      <div class="scan-row">
+        <div class="scan-label">스캔 입력</div>
+        <div class="scan-group">
+          <button type="button" class="btn-secondary btn-small">운송장번호 스캔</button>
+          <input type="text" id="scanWaybill" class="scan-input" placeholder="원송장번호 입력 / 스캔">
+        </div>
+        <div class="scan-group">
+          <button type="button" class="btn-secondary btn-small">주문번호 스캔</button>
+          <input type="text" id="scanOrder" class="scan-input" placeholder="주문번호 입력 / 스캔">
+        </div>
+        <button type="button" id="btnScan" class="btn-primary">회수스캔</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="list-header">
+        <div>
+          <div style="font-weight:700; font-size:13px;">회수스캔 완료 목록 (총 <span id="totalCount">0</span>건)</div>
+        </div>
+        <div class="list-tools">
+          <button type="button" id="btnExcel" class="btn-secondary btn-small">엑셀다운</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="center" style="width:36px;"><input type="checkbox" id="selectAll"></th>
+              <th class="center" style="width:48px;">순번</th>
+              <th>주문유형</th>
+              <th>주문번호</th>
+              <th>택배사명</th>
+              <th>송장번호</th>
+              <th>상품명</th>
+              <th>필수선택</th>
+              <th class="center">수량</th>
+              <th>추가구성</th>
+              <th>판매자 ID</th>
+              <th>판매자명</th>
+              <th>취소/반품</th>
+              <th>취소반품상세</th>
+              <th>회수스캔일시</th>
+              <th>처리자 ID</th>
+            </tr>
+          </thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const state = {
+      items: [],
+      toastTimer: null,
+      seq: 0,
+      handlerId: 'soomchoi'
+    };
+
+    const elements = {
+      scanWaybill: document.getElementById('scanWaybill'),
+      scanOrder: document.getElementById('scanOrder'),
+      btnScan: document.getElementById('btnScan'),
+      selectAll: document.getElementById('selectAll'),
+      listBody: document.getElementById('listBody'),
+      totalCount: document.getElementById('totalCount'),
+      toast: document.getElementById('toast'),
+      btnExcel: document.getElementById('btnExcel')
+    };
+
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => elements.toast.classList.remove('show'), 2500);
+    }
+
+    function nowStr() {
+      const now = new Date();
+      const pad = function (n) { return String(n).padStart(2, '0'); };
+      return now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    }
+
+    function createMockData() {
+      return [
+        {
+          orderType: 'Lazada',
+          orderNo: '4407000201',
+          courier: 'CJ대한통운',
+          waybillNo: '610123456789',
+          productName: '여성 면 티셔츠',
+          requiredOption: '블랙 / L',
+          quantity: 1,
+          additionalOption: '-',
+          sellerId: 'seller01',
+          sellerName: '글로벌패션몰',
+          returnStatus: '반품신청',
+          returnDetail: '(라자다)창고 입고실패',
+          recoveryScanDate: '2026-06-01 09:14',
+          handlerId: 'soomchoi'
+        },
+        {
+          orderType: 'Lazada',
+          orderNo: '4407000202',
+          courier: '한진택배',
+          waybillNo: '420987654321',
+          productName: '남성 데님 자켓',
+          requiredOption: '네이비 / 100',
+          quantity: 1,
+          additionalOption: '-',
+          sellerId: 'seller02',
+          sellerName: '데일리룩',
+          returnStatus: '반품신청',
+          returnDetail: '(라자다)수출통관 실패',
+          recoveryScanDate: '2026-06-01 09:18',
+          handlerId: 'soomchoi'
+        },
+        {
+          orderType: 'Daraz',
+          orderNo: '4407000203',
+          courier: '롯데택배',
+          waybillNo: '550112233445',
+          productName: '주방용품 세트',
+          requiredOption: '4인용',
+          quantity: 2,
+          additionalOption: '추가 컵 2개',
+          sellerId: 'seller03',
+          sellerName: '리빙플러스',
+          returnStatus: '-',
+          returnDetail: '-',
+          recoveryScanDate: '2026-06-01 09:22',
+          handlerId: 'soomchoi'
+        }
+      ];
+    }
+
+    function renderTable() {
+      elements.totalCount.textContent = state.items.length;
+      elements.listBody.innerHTML = !state.items.length
+        ? '<tr><td colspan="16" class="center" style="color:#4b5563;">회수스캔된 건이 없습니다. 운송장번호 또는 주문번호를 스캔해 주세요.</td></tr>'
+        : state.items.map((item, index) => [
+          '<tr>',
+          '<td class="center"><input type="checkbox" class="row-check"></td>',
+          '<td class="center">' + (index + 1) + '</td>',
+          '<td>' + item.orderType + '</td>',
+          '<td>' + item.orderNo + '</td>',
+          '<td>' + item.courier + '</td>',
+          '<td>' + item.waybillNo + '</td>',
+          '<td>' + item.productName + '</td>',
+          '<td>' + item.requiredOption + '</td>',
+          '<td class="center">' + item.quantity + '</td>',
+          '<td>' + item.additionalOption + '</td>',
+          '<td>' + item.sellerId + '</td>',
+          '<td>' + item.sellerName + '</td>',
+          '<td>' + item.returnStatus + '</td>',
+          '<td>' + item.returnDetail + '</td>',
+          '<td>' + item.recoveryScanDate + '</td>',
+          '<td>' + item.handlerId + '</td>',
+          '</tr>'
+        ].join('')).join('');
+    }
+
+    function handleScan() {
+      const waybill = elements.scanWaybill.value.trim();
+      const orderNo = elements.scanOrder.value.trim();
+      if (!waybill && !orderNo) {
+        showToast('운송장번호 또는 주문번호를 입력해 주세요.');
+        return;
+      }
+      const newItem = {
+        orderType: 'Lazada',
+        orderNo: orderNo || '4407' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'),
+        courier: 'CJ대한통운',
+        waybillNo: waybill || '610' + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
+        productName: '신규 회수 상품 (코어 조회 결과)',
+        requiredOption: '-',
+        quantity: 1,
+        additionalOption: '-',
+        sellerId: 'seller99',
+        sellerName: '판매자명 자동조회',
+        returnStatus: '반품신청',
+        returnDetail: '-',
+        recoveryScanDate: nowStr(),
+        handlerId: state.handlerId
+      };
+      state.items.unshift(newItem);
+      elements.scanWaybill.value = '';
+      elements.scanOrder.value = '';
+      showToast('회수스캔 완료. 회송 화물 1건 추가되었습니다.');
+      renderTable();
+    }
+
+    function bindEvents() {
+      elements.btnScan.addEventListener('click', handleScan);
+      elements.scanWaybill.addEventListener('keydown', event => {
+        if (event.key === 'Enter') handleScan();
+      });
+      elements.scanOrder.addEventListener('keydown', event => {
+        if (event.key === 'Enter') handleScan();
+      });
+      elements.selectAll.addEventListener('change', event => {
+        document.querySelectorAll('.row-check').forEach(box => { box.checked = event.target.checked; });
+      });
+      elements.btnExcel.addEventListener('click', () => showToast('회수스캔 엑셀 다운로드는 실제 연동 시 연결됩니다.'));
+    }
+
+    function init() {
+      state.items = createMockData();
+      bindEvents();
+      renderTable();
+    }
+
+    init();
+  </script>
+</body>
+</html>
