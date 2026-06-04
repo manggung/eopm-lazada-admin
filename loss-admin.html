@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>분실관리 어드민</title>
+  <title>라자다 분실관리 어드민</title>
   <style>
     :root {
       --primary:#3f434b;
@@ -122,7 +122,7 @@
 
   <div class="page">
     <section class="card">
-      <h1 style="margin:0 0 8px; font-size:16px;">분실관리</h1>
+      <h1 style="margin:0 0 8px; font-size:16px;">라자다 분실관리</h1>
       <div class="filter-row">
         <div class="filter-label">주문번호</div>
         <div class="filter-control"><textarea id="orderNo" rows="2" class="w-440" placeholder="주문번호 입력 (복수 검색은 콤마 또는 줄바꿈으로 구분)"></textarea></div>
@@ -167,7 +167,7 @@
       </div>
       <div class="list-header">
         <div>
-          <div style="font-weight:700; font-size:13px;">분실관리 목록 (총 <span id="totalCount">0</span>건)</div>
+          <div style="font-weight:700; font-size:13px;">라자다 분실관리 목록 (총 <span id="totalCount">0</span>건)</div>
         </div>
         <div class="list-tools">
           <select id="sortOrder">
@@ -471,7 +471,7 @@
       const result = paginateItems(filtered);
       elements.totalCount.textContent = result.totalCount;
       elements.listBody.innerHTML = !result.pageItems.length
-        ? '<tr><td colspan="14" class="center muted">조회된 분실관리 대상이 없습니다.</td></tr>'
+        ? '<tr><td colspan="14" class="center muted">조회된 라자다 분실관리 대상이 없습니다.</td></tr>'
         : result.pageItems.map(item => [
           '<tr>',
           '<td class="center"><input type="radio" name="lossSelect" class="row-check" data-id="' + item.id + '"' + (state.selectedId === item.id ? ' checked' : '') + '></td>',
@@ -558,7 +558,7 @@
       state.page = 1;
       state.selectedId = '';
       renderTable();
-      showToast('분실관리 검색 조건이 초기화되었습니다.');
+      showToast('라자다 분실관리 검색 조건이 초기화되었습니다.');
     }
 
     function bindEvents() {
@@ -566,7 +566,7 @@
       elements.btnSearch.addEventListener('click', () => {
         state.page = 1;
         renderTable();
-        showToast('분실관리 조건으로 목록을 조회했습니다.');
+        showToast('라자다 분실관리 조건으로 목록을 조회했습니다.');
       });
       elements.btnReset.addEventListener('click', resetFilters);
       elements.btnMarkConfirmed.addEventListener('click', openConfirmModal);
@@ -586,7 +586,7 @@
         state.page = Number(button.dataset.page);
         renderTable();
       });
-      elements.btnExcel.addEventListener('click', () => showToast('분실관리 엑셀 다운로드는 실제 연동 시 연결됩니다.'));
+      elements.btnExcel.addEventListener('click', () => showToast('라자다 분실관리 엑셀 다운로드는 실제 연동 시 연결됩니다.'));
     }
 
     function init() {

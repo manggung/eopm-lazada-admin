@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>회송스캔 어드민</title>
+  <title>라자다 회송스캔 어드민</title>
   <style>
     :root {
       --primary:#3f434b;
@@ -96,25 +96,25 @@
 
   <div class="page">
     <section class="card">
-      <h1 style="margin:0 0 8px; font-size:16px;">회송스캔</h1>
+      <h1 style="margin:0 0 8px; font-size:16px;">라자다 회송스캔</h1>
       <div class="scan-row">
         <div class="scan-label">스캔 입력</div>
         <div class="scan-group">
-          <button type="button" class="btn-secondary btn-small">운송장번호 스캔</button>
-          <input type="text" id="scanWaybill" class="scan-input" placeholder="원송장번호 입력 / 스캔">
+          <button type="button" id="btnScanWaybill" class="btn-secondary btn-small">운송장번호 스캔</button>
+          <input type="text" id="scanWaybill" class="scan-input" placeholder="원송장번호 입력 또는 바코드 스캔">
         </div>
         <div class="scan-group">
-          <button type="button" class="btn-secondary btn-small">주문번호 스캔</button>
-          <input type="text" id="scanOrder" class="scan-input" placeholder="주문번호 입력 / 스캔">
+          <button type="button" id="btnScanOrder" class="btn-secondary btn-small">주문번호 스캔</button>
+          <input type="text" id="scanOrder" class="scan-input" placeholder="주문번호 입력 또는 바코드 스캔">
         </div>
-        <button type="button" id="btnScan" class="btn-primary">회수스캔</button>
+        <button type="button" id="btnScan" class="btn-primary">회송스캔</button>
       </div>
     </section>
 
     <section class="card">
       <div class="list-header">
         <div>
-          <div style="font-weight:700; font-size:13px;">회수스캔 완료 목록 (총 <span id="totalCount">0</span>건)</div>
+          <div style="font-weight:700; font-size:13px;">라자다 회송스캔 완료 목록 (총 <span id="totalCount">0</span>건)</div>
         </div>
         <div class="list-tools">
           <button type="button" id="btnExcel" class="btn-secondary btn-small">엑셀다운</button>
@@ -138,7 +138,7 @@
               <th>판매자명</th>
               <th>취소/반품</th>
               <th>취소반품상세</th>
-              <th>회수스캔일시</th>
+              <th>회송스캔일시</th>
               <th>처리자 ID</th>
             </tr>
           </thead>
@@ -162,6 +162,8 @@
       scanWaybill: document.getElementById('scanWaybill'),
       scanOrder: document.getElementById('scanOrder'),
       btnScan: document.getElementById('btnScan'),
+      btnScanWaybill: document.getElementById('btnScanWaybill'),
+      btnScanOrder: document.getElementById('btnScanOrder'),
       selectAll: document.getElementById('selectAll'),
       listBody: document.getElementById('listBody'),
       totalCount: document.getElementById('totalCount'),
@@ -238,7 +240,7 @@
     function renderTable() {
       elements.totalCount.textContent = state.items.length;
       elements.listBody.innerHTML = !state.items.length
-        ? '<tr><td colspan="16" class="center" style="color:#4b5563;">회수스캔된 건이 없습니다. 운송장번호 또는 주문번호를 스캔해 주세요.</td></tr>'
+        ? '<tr><td colspan="16" class="center" style="color:#4b5563;">라자다 회송스캔된 건이 없습니다. 운송장번호 또는 주문번호를 스캔해 주세요.</td></tr>'
         : state.items.map((item, index) => [
           '<tr>',
           '<td class="center"><input type="checkbox" class="row-check"></td>',
@@ -287,12 +289,20 @@
       state.items.unshift(newItem);
       elements.scanWaybill.value = '';
       elements.scanOrder.value = '';
-      showToast('회수스캔 완료. 회송 화물 1건 추가되었습니다.');
+      showToast('회송스캔 완료. 회송 화물 1건 추가되었습니다.');
       renderTable();
     }
 
     function bindEvents() {
       elements.btnScan.addEventListener('click', handleScan);
+      elements.btnScanWaybill.addEventListener('click', () => {
+        elements.scanWaybill.focus();
+        showToast('바코드 스캐너 연동 시작. 운송장 바코드를 찍어주세요.');
+      });
+      elements.btnScanOrder.addEventListener('click', () => {
+        elements.scanOrder.focus();
+        showToast('바코드 스캐너 연동 시작. 주문번호 바코드를 찍어주세요.');
+      });
       elements.scanWaybill.addEventListener('keydown', event => {
         if (event.key === 'Enter') handleScan();
       });
@@ -302,7 +312,7 @@
       elements.selectAll.addEventListener('change', event => {
         document.querySelectorAll('.row-check').forEach(box => { box.checked = event.target.checked; });
       });
-      elements.btnExcel.addEventListener('click', () => showToast('회수스캔 엑셀 다운로드는 실제 연동 시 연결됩니다.'));
+      elements.btnExcel.addEventListener('click', () => showToast('라자다 회송스캔 엑셀 다운로드는 실제 연동 시 연결됩니다.'));
     }
 
     function init() {
