@@ -128,25 +128,31 @@
         <div class="filter-control"><textarea id="orderNo" rows="2" class="w-440" placeholder="주문번호 입력 (복수 검색은 콤마 또는 줄바꿈으로 구분)"></textarea></div>
       </div>
       <div class="filter-row">
-        <div class="filter-label">판매자 ID</div>
-        <div class="filter-control inline-group">
-          <input type="text" id="sellerId" class="w-260" placeholder="판매자 ID 입력">
+        <div class="filter-label">주문유형</div>
+        <div class="filter-control">
           <select id="orderType">
-            <option value="all">전체 주문유형</option>
+            <option value="all">전체</option>
             <option value="Lazada">Lazada</option>
             <option value="Daraz">Daraz</option>
           </select>
         </div>
       </div>
       <div class="filter-row">
-        <div class="filter-label">분실확정 여부</div>
-        <div class="filter-control checkbox-group">
-          <label><input type="checkbox" name="lossStatus" value="all" checked> 전체</label>
-          <label><input type="checkbox" name="lossStatus" value="confirmed"> 분실확정만</label>
+        <div class="filter-label">판매자 ID</div>
+        <div class="filter-control">
+          <input type="text" id="sellerId" class="w-260" placeholder="판매자 ID 입력">
         </div>
       </div>
       <div class="filter-row">
-        <div class="filter-label">린코스 입고스캔일</div>
+        <div class="filter-label">분실확정 여부</div>
+        <div class="filter-control checkbox-group">
+          <label><input type="checkbox" name="lossStatus" value="all" checked> 전체</label>
+          <label><input type="checkbox" name="lossStatus" value="pending"> 미확정</label>
+          <label><input type="checkbox" name="lossStatus" value="confirmed"> 분실확정</label>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">주문일</div>
         <div class="filter-control inline-group">
           <input type="date" id="dateFrom">
           <span class="muted">~</span>
@@ -171,9 +177,9 @@
         </div>
         <div class="list-tools">
           <select id="sortOrder">
-            <option value="default">기본 정렬 (분실확정 안된건 + 경과일 내림차순)</option>
-            <option value="elapsedDesc">경과일 내림차순</option>
-            <option value="elapsedAsc">경과일 오름차순</option>
+            <option value="default">기본 정렬 (분실확정 안된건 + 주문일로부터 경과일 내림차순)</option>
+            <option value="elapsedDesc">주문일로부터 경과일 내림차순</option>
+            <option value="elapsedAsc">주문일로부터 경과일 오름차순</option>
           </select>
           <button type="button" id="btnExcel" class="btn-secondary btn-small">엑셀다운</button>
         </div>
@@ -182,20 +188,24 @@
         <table>
           <thead>
             <tr>
-              <th class="center" style="width:56px;">선택</th>
+              <th class="center" style="width:56px;"><input type="checkbox" id="selectAllLoss" onclick="toggleSelectAllLoss(this)" title="전체선택"></th>
+              <th>분실확정</th>
               <th>주문번호</th>
               <th>주문유형</th>
               <th>판매자 ID</th>
+              <th>주문일</th>
               <th>반품상태</th>
-              <th>분실확정</th>
+              <th>반품신청일자</th>
+              <th>수거상태</th>
               <th>분실귀책</th>
               <th>분실확정일시</th>
               <th>상세 메모</th>
-              <th class="center">마지막 스캔 경과일</th>
+              <th class="center">주문일로부터 경과일</th>
+              <th>배송완료일</th>
               <th>린코스 입고스캔일시</th>
               <th>린코스 도착스캔일시</th>
               <th>라자다 입고처리일시</th>
-              <th>린코스 회수스캔일시</th>
+              <th>린코스 회송스캔일시</th>
             </tr>
           </thead>
           <tbody id="listBody"></tbody>
@@ -237,7 +247,7 @@
     };
 
     const lossStatusLabel = {
-      pending: '-',
+      pending: '미확정',
       confirmed: '분실확정'
     };
 
@@ -247,7 +257,8 @@
       page: 1,
       pageSize: 10,
       sortOrder: 'default',
-      selectedId: ''
+      selectedIds: [],
+      searched: false
     };
 
     const elements = {
@@ -314,47 +325,19 @@
           orderNo: '4407000101',
           orderType: 'Lazada',
           sellerId: 'seller02',
+          purchaseDate: '2026-05-10',
           returnStatus: '-',
+          returnRequestDate: '-',
+          collectionStatus: '-',
           lossStatus: 'pending',
           faultOwner: '',
           lossConfirmDate: '-',
           lossMemo: '',
-          elapsedDays: 12,
+          elapsedDays: 29,
+          internalDeliveryDate: '2026-05-13 06:30',
           lynkosInboundScanDate: '2026-05-13 09:06',
           lynkosArrivalScanDate: '-',
           lazadaInboundDate: '-',
-          lynkosRecoveryScanDate: '-'
-        },
-        {
-          id: 'loss-2',
-          orderNo: '4407000102',
-          orderType: 'Lazada',
-          sellerId: 'seller03',
-          returnStatus: '-',
-          lossStatus: 'pending',
-          faultOwner: '',
-          lossConfirmDate: '-',
-          lossMemo: '',
-          elapsedDays: 9,
-          lynkosInboundScanDate: '2026-05-15 09:12',
-          lynkosArrivalScanDate: '2026-05-15 12:15',
-          lazadaInboundDate: '-',
-          lynkosRecoveryScanDate: '-'
-        },
-        {
-          id: 'loss-3',
-          orderNo: '4407000103',
-          orderType: 'Lazada',
-          sellerId: 'seller04',
-          returnStatus: '-',
-          lossStatus: 'pending',
-          faultOwner: '',
-          lossConfirmDate: '-',
-          lossMemo: '',
-          elapsedDays: 7,
-          lynkosInboundScanDate: '2026-05-18 09:09',
-          lynkosArrivalScanDate: '2026-05-18 12:15',
-          lazadaInboundDate: '2026-05-20 14:06',
           lynkosRecoveryScanDate: '-'
         },
         {
@@ -362,12 +345,16 @@
           orderNo: '4407000104',
           orderType: 'Lazada',
           sellerId: 'seller05',
+          purchaseDate: '2026-05-16',
           returnStatus: '반품신청',
+          returnRequestDate: '2026-05-23 14:10',
+          collectionStatus: '수거중',
           lossStatus: 'pending',
           faultOwner: '',
           lossConfirmDate: '-',
           lossMemo: '',
-          elapsedDays: 6,
+          elapsedDays: 23,
+          internalDeliveryDate: '2026-05-19 07:15',
           lynkosInboundScanDate: '2026-05-19 09:15',
           lynkosArrivalScanDate: '2026-05-19 12:25',
           lazadaInboundDate: '2026-05-21 14:10',
@@ -378,13 +365,17 @@
           orderNo: '4407000105',
           orderType: 'Lazada',
           sellerId: 'seller06',
+          purchaseDate: '2026-05-08',
           returnStatus: '-',
+          returnRequestDate: '-',
+          collectionStatus: '-',
           lossStatus: 'confirmed',
           faultOwner: 'lynkos',
           lossConfirmDate: '2026-05-25 11:05',
-          lossMemo: '린코스 입고스캔 후 도착스캔 미발생, 창고 재확인 결과 미확인',
-          elapsedDays: 14,
-          lynkosInboundScanDate: '2026-05-11 09:18',
+          lossMemo: '내재화 배송완료됐으나 린코스 입고스캔 미발생, 창고 재확인 결과 미확인',
+          elapsedDays: 31,
+          internalDeliveryDate: '2026-05-11 06:45',
+          lynkosInboundScanDate: '-',
           lynkosArrivalScanDate: '-',
           lazadaInboundDate: '-',
           lynkosRecoveryScanDate: '-'
@@ -394,12 +385,16 @@
           orderNo: '4407000106',
           orderType: 'Lazada',
           sellerId: 'seller07',
+          purchaseDate: '2026-05-12',
           returnStatus: '반품신청',
+          returnRequestDate: '2026-05-25 09:42',
+          collectionStatus: '수거실패',
           lossStatus: 'confirmed',
           faultOwner: 'lazada',
           lossConfirmDate: '2026-05-28 10:23',
-          lossMemo: '라자다 입고처리까지 정상, 회수스캔 미발생. 라자다 측 회송 누락 확인 필요',
-          elapsedDays: 10,
+          lossMemo: '라자다 입고처리까지 정상, 회송스캔 미발생. 라자다 측 회송 누락 확인 필요',
+          elapsedDays: 27,
+          internalDeliveryDate: '2026-05-15 06:50',
           lynkosInboundScanDate: '2026-05-15 09:18',
           lynkosArrivalScanDate: '2026-05-15 12:30',
           lazadaInboundDate: '2026-05-17 11:00',
@@ -416,13 +411,13 @@
       const from = elements.dateFrom.value;
       const to = elements.dateTo.value;
       return state.items.filter(item => {
-        const inboundDate = parseDatePart(item.lynkosInboundScanDate);
+        const purchaseDate = parseDatePart(item.purchaseDate);
         if (orderNos.length && !orderNos.includes(item.orderNo)) return false;
         if (sellerIds.length && !sellerIds.includes(String(item.sellerId).toLowerCase())) return false;
         if (orderType !== 'all' && item.orderType !== orderType) return false;
         if (!statuses.includes('all') && !statuses.includes(item.lossStatus)) return false;
-        if (from && (!inboundDate || inboundDate < from)) return false;
-        if (to && (!inboundDate || inboundDate > to)) return false;
+        if (from && (!purchaseDate || purchaseDate < from)) return false;
+        if (to && (!purchaseDate || purchaseDate > to)) return false;
         return true;
       });
     }
@@ -467,23 +462,33 @@
     }
 
     function renderTable() {
+      if (!state.searched) {
+        elements.totalCount.textContent = '0';
+        elements.listBody.innerHTML = '<tr><td colspan="18" class="center muted">조회 조건을 설정하고 [검색] 버튼을 클릭해 주세요.</td></tr>';
+        elements.pagination.innerHTML = '';
+        return;
+      }
       const filtered = sortItems(filterItems());
       const result = paginateItems(filtered);
       elements.totalCount.textContent = result.totalCount;
       elements.listBody.innerHTML = !result.pageItems.length
-        ? '<tr><td colspan="14" class="center muted">조회된 라자다 분실관리 대상이 없습니다.</td></tr>'
+        ? '<tr><td colspan="18" class="center muted">조회된 라자다 분실관리 대상이 없습니다.</td></tr>'
         : result.pageItems.map(item => [
           '<tr>',
-          '<td class="center"><input type="radio" name="lossSelect" class="row-check" data-id="' + item.id + '"' + (state.selectedId === item.id ? ' checked' : '') + '></td>',
+          '<td class="center"><input type="checkbox" class="row-check" data-id="' + item.id + '"' + (state.selectedIds.includes(item.id) ? ' checked' : '') + ' onclick="toggleLossRow(this); event.stopPropagation();"></td>',
+          '<td>' + (lossStatusLabel[item.lossStatus] || '-') + '</td>',
           '<td>' + item.orderNo + '</td>',
           '<td>' + item.orderType + '</td>',
           '<td>' + item.sellerId + '</td>',
+          '<td>' + (item.purchaseDate || '-') + '</td>',
           '<td>' + (item.returnStatus || '-') + '</td>',
-          '<td>' + (lossStatusLabel[item.lossStatus] || '-') + '</td>',
+          '<td>' + (item.returnRequestDate || '-') + '</td>',
+          '<td>' + (item.collectionStatus || '-') + '</td>',
           '<td>' + (faultOwnerMap[item.faultOwner] || '-') + '</td>',
           '<td>' + item.lossConfirmDate + '</td>',
           '<td title="' + (item.lossMemo || '') + '">' + (item.lossMemo || '-') + '</td>',
           '<td class="center">' + item.elapsedDays + '일</td>',
+          '<td>' + (item.internalDeliveryDate || '-') + '</td>',
           '<td>' + item.lynkosInboundScanDate + '</td>',
           '<td>' + item.lynkosArrivalScanDate + '</td>',
           '<td>' + item.lazadaInboundDate + '</td>',
@@ -494,23 +499,59 @@
       bindDynamicEvents();
     }
 
-    function getSelectedItem() {
-      return state.items.find(item => item.id === state.selectedId);
+    function getSelectedItems() {
+      return state.items.filter(item => state.selectedIds.includes(item.id));
+    }
+
+    function getEligibleSelectedItems() {
+      return getSelectedItems().filter(item => item.lossStatus === 'pending');
+    }
+
+    function toggleLossRow(cb) {
+      const id = cb.dataset.id;
+      if (cb.checked) {
+        if (!state.selectedIds.includes(id)) state.selectedIds.push(id);
+      } else {
+        state.selectedIds = state.selectedIds.filter(x => x !== id);
+      }
+      refreshSelectAllLoss();
+    }
+
+    function toggleSelectAllLoss(headCb) {
+      const visibleCbs = document.querySelectorAll('.row-check');
+      visibleCbs.forEach(cb => {
+        cb.checked = headCb.checked;
+        const id = cb.dataset.id;
+        if (cb.checked) {
+          if (!state.selectedIds.includes(id)) state.selectedIds.push(id);
+        } else {
+          state.selectedIds = state.selectedIds.filter(x => x !== id);
+        }
+      });
+    }
+
+    function refreshSelectAllLoss() {
+      const head = document.getElementById('selectAllLoss');
+      const all = document.querySelectorAll('.row-check');
+      const checked = Array.from(all).filter(cb => cb.checked);
+      if (!head || !all.length) return;
+      head.checked = checked.length === all.length;
+      head.indeterminate = checked.length > 0 && checked.length < all.length;
     }
 
     function openConfirmModal() {
-      const item = getSelectedItem();
-      if (!item) {
-        showToast('처리할 주문 1건을 선택해 주세요.');
+      const selected = getSelectedItems();
+      if (!selected.length) {
+        showToast('처리할 주문을 선택해 주세요.');
         return;
       }
-      if (item.lossStatus !== 'pending') {
-        showToast('미확정 상태인 건만 분실확정 가능합니다.');
+      const alreadyConfirmed = selected.filter(item => item.lossStatus !== 'pending');
+      if (alreadyConfirmed.length) {
+        alert('이미 분실확정된 건이 포함되어 있습니다.\n미확정 상태인 건만 선택해 주세요.');
         return;
       }
       elements.confirmModalInfo.innerHTML =
-        '<strong>주문번호:</strong> ' + item.orderNo +
-        ' &nbsp;|&nbsp; <strong>판매자:</strong> ' + item.sellerId;
+        '<strong>선택 건수: ' + selected.length + '건</strong>';
       elements.confirmFaultOwner.value = '';
       elements.confirmMemo.value = '';
       elements.confirmModal.classList.add('show');
@@ -521,8 +562,8 @@
     }
 
     function submitConfirmModal() {
-      const item = getSelectedItem();
-      if (!item) return;
+      const eligible = getEligibleSelectedItems();
+      if (!eligible.length) return;
       const fault = elements.confirmFaultOwner.value;
       if (!fault) {
         showToast('분실귀책을 선택해 주세요.');
@@ -530,22 +571,22 @@
       }
       const now = new Date();
       const pad2 = function (n) { return String(n).padStart(2, '0'); };
-      item.lossStatus = 'confirmed';
-      item.faultOwner = fault;
-      item.lossConfirmDate = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
-      item.lossMemo = elements.confirmMemo.value.trim();
+      const dateStr = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+      const memo = elements.confirmMemo.value.trim();
+      eligible.forEach(item => {
+        item.lossStatus = 'confirmed';
+        item.faultOwner = fault;
+        item.lossConfirmDate = dateStr;
+        item.lossMemo = memo;
+      });
+      state.selectedIds = [];
       closeConfirmModal();
-      showToast('분실확정 처리되었습니다. CS에서 후속 처리할 수 있습니다.');
+      showToast(eligible.length + '건 분실확정 처리되었습니다. CS에서 후속 처리할 수 있습니다.');
       renderTable();
     }
 
     function bindDynamicEvents() {
-      document.querySelectorAll('.row-check').forEach(radio => {
-        radio.onchange = event => {
-          state.selectedId = event.target.dataset.id;
-          renderTable();
-        };
-      });
+      refreshSelectAllLoss();
     }
 
     function resetFilters() {
@@ -556,7 +597,8 @@
       elements.dateTo.value = '';
       elements.lossStatusBoxes.forEach(box => { box.checked = box.value === 'all'; });
       state.page = 1;
-      state.selectedId = '';
+      state.selectedIds = [];
+      state.searched = false;
       renderTable();
       showToast('라자다 분실관리 검색 조건이 초기화되었습니다.');
     }
@@ -565,6 +607,7 @@
       elements.lossStatusBoxes.forEach(box => box.addEventListener('change', () => handleStatusGroup(box)));
       elements.btnSearch.addEventListener('click', () => {
         state.page = 1;
+        state.searched = true;
         renderTable();
         showToast('라자다 분실관리 조건으로 목록을 조회했습니다.');
       });

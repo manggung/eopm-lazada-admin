@@ -30,7 +30,7 @@ button:disabled { cursor: not-allowed; opacity: 0.35; }
 .table-wrap { overflow-x: auto; border: 1px solid #c5c7cf; margin-top: 12px; }
 table { width: 100%; min-width: 1400px; border-collapse: collapse; }
 th, td { padding: 6px 8px; border-right: 1px solid #c9ccd4; border-bottom: 1px solid #d6d8df; text-align: left; white-space: nowrap; }
-th { background: linear-gradient(180deg, #737595, #545773); color: #fff; font-weight: 400; }
+th { background: linear-gradient(180deg, #737595, #545773); color: #fff; font-weight: 400; position: sticky; top: 0; z-index: 2; }
 tbody tr { cursor: pointer; }
 tbody tr:nth-child(even) { background: #fbfbfd; }
 tbody tr:hover { background: #eef2f8; }
@@ -62,6 +62,11 @@ tbody tr.selected { background: #dbeafe; }
 .modal .modal-info { padding: 10px; background: #f0fdf4; border: 1px solid #86efac; color: #166534; margin: 14px 0; font-size: 12px; }
 .modal .modal-info.warn { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e0e0e0; }
+/* 페이징 */
+.page-btn { min-width: 28px; height: 26px; border: 1px solid #b9bcc5; background: #fff; cursor: pointer; font: inherit; padding: 0 8px; }
+.page-btn:hover:not(:disabled) { background: #eef2f8; }
+.page-btn.active { background: #3f434b; color: #fff; border-color: #2d3137; font-weight: 700; }
+.page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -80,9 +85,46 @@ tbody tr.selected { background: #dbeafe; }
 
 <div class="page">
 
-  <!-- ───────── 섹션 1: 반품신청 ───────── -->
+  <h1 style="font-size:22px; font-weight:800; margin:0 0 16px; padding-bottom:10px; border-bottom:1px solid #d1d5db; color:#1f2937;">라자다 반품관리</h1>
+
+  <!-- ───────── 섹션 1: 회송스캔 ───────── -->
   <div class="card">
-    <h2 class="section-title">1. 반품신청</h2>
+    <h2 class="section-title">1. 회송스캔</h2>
+    <p class="section-desc">라자다 → 린코스 회송 화물 스캔. 스캔 결과에 따라 <strong>반품가능 건은 아래 [2. 반품신청]</strong>으로, <strong>이미 반품처리된 건은 [3. 반품 및 수거관리]</strong>로 자동 분류됩니다.</p>
+
+    <div class="row">
+      <div class="label">주문번호</div>
+      <input type="text" id="recoveryOrderInput" class="w-320" placeholder="주문번호 스캔/입력 후 Enter" onkeydown="if(event.key==='Enter') scanRecovery('order')">
+      <button class="btn-primary" onclick="scanRecovery('order')">스캔</button>
+      <div class="label" style="margin-left:16px;">송장번호</div>
+      <input type="text" id="recoveryInvoiceInput" class="w-320" placeholder="송장번호 스캔/입력 후 Enter (단포 건만)" onkeydown="if(event.key==='Enter') scanRecovery('invoice')">
+      <button class="btn-primary" onclick="scanRecovery('invoice')">스캔</button>
+    </div>
+    <div class="row">
+      <div class="label"></div>
+      <span id="scanResultMsg" style="font-weight:700;"></span>
+    </div>
+
+    <div class="table-wrap" style="margin-top:8px; max-height:240px; overflow-y:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px;">No</th>
+            <th>주문번호</th>
+            <th>원택배사</th>
+            <th>원송장번호</th>
+          </tr>
+        </thead>
+        <tbody id="recoveryListBody">
+          <tr class="empty-tbody"><td colspan="4">스캔하면 이 자리에 정보가 표시됩니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ───────── 섹션 2: 반품신청 ───────── -->
+  <div class="card">
+    <h2 class="section-title">2. 반품신청</h2>
     <p class="section-desc">린코스에서 반품신청이 필요한 라자다 주문건이 자동 노출됩니다.</p>
 
     <div class="row">
@@ -95,11 +137,12 @@ tbody tr.selected { background: #dbeafe; }
       <div class="list-title">반품신청 필요 목록 (총 <span id="totalCount">0</span>건)</div>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
       <table>
-        <thead>
+        <thead style="position:sticky; top:0; z-index:1;">
           <tr>
-            <th style="width:60px;">선택</th>
+            <th style="width:60px; text-align:center;"><input type="checkbox" id="selectAllOrders" onclick="toggleSelectAll(this)" title="전체선택"></th>
+            <th>반품상태</th>
             <th>주문번호</th>
             <th>주문유형</th>
             <th>판매자 ID</th>
@@ -113,8 +156,7 @@ tbody tr.selected { background: #dbeafe; }
             <th>린코스 입고스캔일시</th>
             <th>린코스 도착스캔일시</th>
             <th>라자다 입고처리일시</th>
-            <th>린코스 회수스캔일시</th>
-            <th>반품상태</th>
+            <th>린코스 회송스캔일시</th>
           </tr>
         </thead>
         <tbody id="resultBody">
@@ -129,16 +171,21 @@ tbody tr.selected { background: #dbeafe; }
     </div>
   </div>
 
-  <!-- ───────── 섹션 2: 수거관리 ───────── -->
+  <!-- ───────── 섹션 3: 반품 및 수거관리 ───────── -->
   <div class="card">
-    <h2 class="section-title">2. 수거관리</h2>
-    <p class="section-desc">반품신청된 건의 수거 상태를 확인하고, 수거 실패·취소 건에 재수거지시합니다.</p>
+    <h2 class="section-title">3. 반품 및 수거관리</h2>
+    <p class="section-desc">반품신청된 건의 반품·수거 상태를 확인하고, 수거 실패·취소 건에 재수거지시합니다.</p>
 
     <div class="row">
       <div class="label">반품신청일</div>
-      <input type="date">
+      <input type="date" id="reqDateFrom">
       <span>~</span>
-      <input type="date">
+      <input type="date" id="reqDateTo">
+      <button class="btn-secondary btn-small" onclick="setDateRange(1)">1일</button>
+      <button class="btn-secondary btn-small" onclick="setDateRange(3)">3일</button>
+      <button class="btn-secondary btn-small" onclick="setDateRange(7)">1주일</button>
+      <button class="btn-secondary btn-small" onclick="setDateRange(14)">2주일</button>
+      <button class="btn-secondary btn-small" onclick="setDateRange(30)">30일</button>
     </div>
     <div class="row">
       <div class="label">주문번호</div>
@@ -175,7 +222,7 @@ tbody tr.selected { background: #dbeafe; }
     </div>
 
     <div class="list-header">
-      <div class="list-title">수거관리 목록 (총 4건)</div>
+      <div class="list-title">반품 및 수거관리 목록 (총 4건)</div>
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="btn-primary btn-small" id="btnReCollection" disabled>재수거지시</button>
         <button class="btn-secondary btn-small">엑셀다운</button>
@@ -186,7 +233,7 @@ tbody tr.selected { background: #dbeafe; }
       <table>
         <thead>
           <tr>
-            <th>선택</th>
+            <th style="width:60px; text-align:center;"><input type="checkbox" id="selectAllCollection" onclick="toggleSelectAllCollection(this)" title="전체선택"></th>
             <th>주문번호</th>
             <th>주문유형</th>
             <th>판매자 ID</th>
@@ -208,8 +255,8 @@ tbody tr.selected { background: #dbeafe; }
           </tr>
         </thead>
         <tbody>
-          <tr onclick="selectCollectionRow(this, '수거중')">
-            <td><input type="radio" name="collectionSelect"></td>
+          <tr onclick="toggleCollectionRow(this)" data-status="수거중">
+            <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407000138</td>
             <td>Lazada</td>
             <td>seller02</td>
@@ -226,11 +273,11 @@ tbody tr.selected { background: #dbeafe; }
             <td>696858571350</td>
             <td>N</td>
             <td>-</td>
-            <td>LAZGS13</td>
+            <td>LAZADA</td>
             <td>-</td>
           </tr>
-          <tr onclick="selectCollectionRow(this, '수거실패')">
-            <td><input type="radio" name="collectionSelect"></td>
+          <tr onclick="toggleCollectionRow(this)" data-status="수거실패">
+            <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407000276</td>
             <td>Lazada</td>
             <td>seller03</td>
@@ -250,8 +297,8 @@ tbody tr.selected { background: #dbeafe; }
             <td>lincos02</td>
             <td>-</td>
           </tr>
-          <tr onclick="selectCollectionRow(this, '수거요청준비')">
-            <td><input type="radio" name="collectionSelect"></td>
+          <tr onclick="toggleCollectionRow(this)" data-status="수거취소">
+            <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407000301</td>
             <td>Lazada</td>
             <td>seller04</td>
@@ -260,7 +307,7 @@ tbody tr.selected { background: #dbeafe; }
             <td>구매자</td>
             <td>2026-03-03 15:00</td>
             <td>수거지시</td>
-            <td>수거요청준비</td>
+            <td>수거취소</td>
             <td>2026-03-05</td>
             <td>한진</td>
             <td>460819200001</td>
@@ -271,8 +318,8 @@ tbody tr.selected { background: #dbeafe; }
             <td>LAZGS13</td>
             <td>lincos03</td>
           </tr>
-          <tr onclick="selectCollectionRow(this, '수거요청준비')">
-            <td><input type="radio" name="collectionSelect"></td>
+          <tr onclick="toggleCollectionRow(this)" data-status="수거요청준비">
+            <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407001000</td>
             <td>Lazada</td>
             <td>ssgmall</td>
@@ -309,25 +356,14 @@ tbody tr.selected { background: #dbeafe; }
       <div class="label">반품사유</div>
       <select id="returnReason" onchange="updateFault()">
         <option value="">선택하세요</option>
-        <optgroup label="코어 사유">
+        <optgroup label="구매자귀책">
           <option value="구매자변심">구매자변심</option>
           <option value="사이즈색상변경">사이즈색상변경</option>
+        </optgroup>
+        <optgroup label="판매자귀책">
           <option value="상품도착안함">상품도착안함</option>
           <option value="상품 파손/훼손">상품 파손/훼손</option>
           <option value="색상등 다른 상품 잘못 배송">색상등 다른 상품 잘못 배송</option>
-        </optgroup>
-        <optgroup label="라자다 사유">
-          <option value="(라자다)구매자변심">(라자다)구매자변심</option>
-          <option value="(라자다)사이즈,색상변경">(라자다)사이즈,색상변경</option>
-          <option value="(라자다)상품이 도착하지 않고 있음">(라자다)상품이 도착하지 않고 있음</option>
-          <option value="(라자다)창고 상품파손">(라자다)창고 상품파손</option>
-          <option value="(라자다)창고 상품품절">(라자다)창고 상품품절</option>
-          <option value="(라자다)창고 내용물부족/수량차이">(라자다)창고 내용물부족/수량차이</option>
-          <option value="(라자다)창고 라벨인식불가">(라자다)창고 라벨인식불가</option>
-          <option value="(라자다)창고 불량">(라자다)창고 불량</option>
-          <option value="(라자다)창고 포장불량">(라자다)창고 포장불량</option>
-          <option value="(라자다)창고 기타">(라자다)창고 기타</option>
-          <option value="(라자다)신용전용">(라자다)신용전용</option>
         </optgroup>
       </select>
     </div>
@@ -517,6 +553,159 @@ const mockOrders = {
     problemType: '기타',
     problemMemo: '라벨 인식 불가, 상품번호 확인 필요',
     autoShow: true
+  },
+  '4407000406': {
+    orderNo: '4407000406', orderType: 'Lazada', sellerId: 'seller13',
+    productName: '아동 운동화 화이트 220',
+    lincosInboundScanDate: '2026-05-26 10:15',
+    lincosArrivalScanDate: '-',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '-',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: '롯데택배',
+    invoiceNo: '550223344556',
+    problemType: '상품누락',
+    problemMemo: '박스 내 신발 미입고',
+    autoShow: true
+  },
+  '4407000407': {
+    orderNo: '4407000407', orderType: 'Lazada', sellerId: 'seller14',
+    productName: '무선 마우스 그레이',
+    lincosInboundScanDate: '2026-05-25 13:40',
+    lincosArrivalScanDate: '-',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '-',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: 'CJ대한통운',
+    invoiceNo: '611112233444',
+    problemType: '수량누락',
+    problemMemo: '주문 수량 3개 중 2개만 입고',
+    autoShow: true
+  },
+  '4407000408': {
+    orderNo: '4407000408', orderType: 'Lazada', sellerId: 'seller15',
+    productName: '여성 가디건 베이지 M',
+    lincosInboundScanDate: '2026-05-25 11:20',
+    lincosArrivalScanDate: '2026-05-25 15:00',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '2026-06-02 09:10',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: '한진택배',
+    invoiceNo: '460445566778',
+    problemType: '-',
+    problemMemo: '-',
+    autoShow: true
+  },
+  '4407000409': {
+    orderNo: '4407000409', orderType: 'Lazada', sellerId: 'seller16',
+    productName: '주방용 칼 세트 4종',
+    lincosInboundScanDate: '2026-05-24 14:30',
+    lincosArrivalScanDate: '-',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '-',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: 'CJ대한통운',
+    invoiceNo: '611556677889',
+    problemType: '기타',
+    problemMemo: '이형물(액체류) - 해외배송 불가',
+    autoShow: true
+  },
+  '4407000410': {
+    orderNo: '4407000410', orderType: 'Lazada', sellerId: 'seller17',
+    productName: '캐주얼 크로스백 블랙',
+    lincosInboundScanDate: '2026-05-24 09:50',
+    lincosArrivalScanDate: '2026-05-24 14:00',
+    lazadaInboundDate: '2026-05-25 10:30',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '2026-06-02 11:45',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: '롯데택배',
+    invoiceNo: '550667788990',
+    problemType: '-',
+    problemMemo: '-',
+    autoShow: true
+  },
+  '4407000411': {
+    orderNo: '4407000411', orderType: 'Lazada', sellerId: 'seller18',
+    productName: '남성 카라티 화이트 L',
+    lincosInboundScanDate: '2026-05-23 16:10',
+    lincosArrivalScanDate: '-',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '-',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: '한진택배',
+    invoiceNo: '460778899001',
+    problemType: '상품누락',
+    problemMemo: '주문 상품 대신 다른 셀러 상품 입고',
+    autoShow: true
+  },
+  '4407000412': {
+    orderNo: '4407000412', orderType: 'Lazada', sellerId: 'seller19',
+    productName: '인테리어 LED 무드등',
+    lincosInboundScanDate: '2026-05-23 10:00',
+    lincosArrivalScanDate: '-',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '-',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: 'CJ대한통운',
+    invoiceNo: '611889900112',
+    problemType: '기타',
+    problemMemo: '포장 파손, 내용물 깨짐 의심',
+    autoShow: true
+  },
+  '4407000413': {
+    orderNo: '4407000413', orderType: 'Lazada', sellerId: 'seller20',
+    productName: '아동 동화책 5권 세트',
+    lincosInboundScanDate: '2026-05-22 13:25',
+    lincosArrivalScanDate: '2026-05-22 17:00',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '2026-06-03 08:30',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: true,
+    originCourier: '롯데택배',
+    invoiceNo: '550990011223',
+    problemType: '-',
+    problemMemo: '-',
+    autoShow: true
+  },
+  '4407000414': {
+    orderNo: '4407000414', orderType: 'Lazada', sellerId: 'ssg2',
+    productName: '품시 슬립 원피스 그레이 S',
+    lincosInboundScanDate: '2026-05-22 09:00',
+    lincosArrivalScanDate: '-',
+    lazadaInboundDate: '-',
+    orderStatus: '배송중', orderStatusClass: 'badge-blue',
+    returnScanDate: '-',
+    returnable: true,
+    returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
+    canCancel: false, autoPickup: false,
+    originCourier: 'CJ대한통운',
+    invoiceNo: '612001122334',
+    problemType: '수량누락',
+    problemMemo: '주문 수량 2개 중 1개만 입고 (자동수거지시 예외 셀러)',
+    autoShow: true
   }
 };
 
@@ -540,11 +729,16 @@ const reasonToFault = {
 };
 
 let currentOrder = null;
+let selectedOrders = [];
+let currentList = [];
+// 데모용: 그리드에 보여줄 5건만 지정 (문제건 등록 3건 + 회송스캔 2건 mix)
+const visibleOrderNos = ['4407001000', '4407000403', '4407000402', '4407000408', '4407000407'];
 
 function renderOrderRow(order) {
   return `
-    <tr onclick="selectRow(this, '${order.orderNo}')">
-      <td><input type="radio" name="orderSelect"></td>
+    <tr onclick="selectRow(this, '${order.orderNo}', event)">
+      <td><input type="checkbox" class="orderSelect" data-orderno="${order.orderNo}" onclick="event.stopPropagation(); toggleRow(this);"></td>
+      <td>${order.returnStatus}</td>
       <td>${order.orderNo}</td>
       <td>${order.orderType}</td>
       <td>${order.sellerId}</td>
@@ -559,31 +753,55 @@ function renderOrderRow(order) {
       <td>${order.lincosArrivalScanDate || '-'}</td>
       <td>${order.lazadaInboundDate || '-'}</td>
       <td>${order.returnScanDate}</td>
-      <td>${order.returnStatus}</td>
     </tr>
   `;
 }
 
 function renderAutoShowList() {
+  resetActionBar();
+  currentList = visibleOrderNos.map(no => mockOrders[no]).filter(Boolean);
+  renderList();
+}
+
+function renderList() {
   const resultBody = document.getElementById('resultBody');
   const totalCount = document.getElementById('totalCount');
-  resetActionBar();
 
-  const autoList = Object.values(mockOrders).filter(o => o.autoShow);
-  if (!autoList.length) {
-    resultBody.innerHTML = '<tr class="empty-tbody"><td colspan="13">반품신청 필요 건이 없습니다.</td></tr>';
-    totalCount.textContent = '0';
+  totalCount.textContent = String(currentList.length);
+
+  if (!currentList.length) {
+    resultBody.innerHTML = '<tr class="empty-tbody"><td colspan="16">반품신청 필요 건이 없습니다.</td></tr>';
+    syncSelectAllState();
     return;
   }
-  resultBody.innerHTML = autoList.map(renderOrderRow).join('');
-  totalCount.textContent = String(autoList.length);
+
+  resultBody.innerHTML = currentList.map(renderOrderRow).join('');
+  syncSelectAllState();
+}
+
+function toggleSelectAll(headCheckbox) {
+  const rows = document.querySelectorAll('#resultBody input.orderSelect');
+  rows.forEach(cb => {
+    cb.checked = headCheckbox.checked;
+    const row = cb.closest('tr');
+    if (cb.checked) row.classList.add('selected');
+    else row.classList.remove('selected');
+  });
+  refreshSelectedOrders();
+}
+
+function syncSelectAllState() {
+  const head = document.getElementById('selectAllOrders');
+  if (!head) return;
+  const rows = document.querySelectorAll('#resultBody input.orderSelect');
+  if (!rows.length) { head.checked = false; head.indeterminate = false; return; }
+  const checkedCount = Array.from(rows).filter(cb => cb.checked).length;
+  head.checked = checkedCount === rows.length;
+  head.indeterminate = checkedCount > 0 && checkedCount < rows.length;
 }
 
 function searchOrder() {
   const orderNo = document.getElementById('orderNoInput').value.trim();
-  const resultBody = document.getElementById('resultBody');
-  const totalCount = document.getElementById('totalCount');
-
   resetActionBar();
 
   if (!orderNo) {
@@ -592,40 +810,53 @@ function searchOrder() {
   }
 
   const order = mockOrders[orderNo];
-
-  // 검색 범위: 자동 노출 조건(autoShow) 안에서만
-  if (!order || !order.autoShow) {
-    resultBody.innerHTML = '<tr class="empty-tbody"><td colspan="13">반품신청 필요 목록에 해당 주문번호가 없습니다.</td></tr>';
-    totalCount.textContent = '0';
-    return;
-  }
-
-  resultBody.innerHTML = renderOrderRow(order);
-  totalCount.textContent = '1';
+  // 검색 범위: 데모상 노출된 5건 안에서만
+  currentList = (order && visibleOrderNos.includes(orderNo)) ? [order] : [];
+  renderList();
 }
 
-function selectRow(rowEl, orderNo) {
-  rowEl.querySelector('input[type="radio"]').checked = true;
-  document.querySelectorAll('#resultBody tr').forEach(tr => tr.classList.remove('selected'));
-  rowEl.classList.add('selected');
+function selectRow(rowEl, orderNo, event) {
+  const checkbox = rowEl.querySelector('input[type="checkbox"]');
+  checkbox.checked = !checkbox.checked;
+  toggleRow(checkbox);
+}
 
-  const order = mockOrders[orderNo];
-  currentOrder = order;
+function toggleRow(checkboxEl) {
+  const rowEl = checkboxEl.closest('tr');
+  if (checkboxEl.checked) {
+    rowEl.classList.add('selected');
+  } else {
+    rowEl.classList.remove('selected');
+  }
+  refreshSelectedOrders();
+}
+
+function refreshSelectedOrders() {
+  selectedOrders = Array.from(document.querySelectorAll('#resultBody input.orderSelect:checked'))
+    .map(cb => mockOrders[cb.dataset.orderno])
+    .filter(o => o && o.returnable);
 
   const btnRequest = document.getElementById('btnRequest');
-  btnRequest.disabled = !order.returnable;
+  btnRequest.disabled = selectedOrders.length === 0;
+  btnRequest.textContent = selectedOrders.length > 1
+    ? `반품신청 (${selectedOrders.length}건)`
+    : '반품신청';
+  syncSelectAllState();
 }
 
 function resetActionBar() {
   document.getElementById('btnRequest').disabled = true;
+  document.getElementById('btnRequest').textContent = '반품신청';
   currentOrder = null;
+  selectedOrders = [];
 }
 
 function openModal() {
-  if (!currentOrder) return;
-  // 모달 정보 채우기
-  document.getElementById('modalOrderInfo').innerHTML =
-    `<strong>주문번호:</strong> ${currentOrder.orderNo} &nbsp;|&nbsp; <strong>셀러:</strong> ${currentOrder.sellerId} &nbsp;|&nbsp; <strong>상품:</strong> ${currentOrder.productName}`;
+  if (!selectedOrders.length) return;
+
+  // 모달 상단 정보: 건수만 노출 (주문번호 등 선택 내용은 직원이 그리드에서 이미 인지)
+  const info = document.getElementById('modalOrderInfo');
+  info.innerHTML = `<strong>선택 건수: ${selectedOrders.length}건</strong>`;
 
   // 폼 초기화
   document.getElementById('returnReason').value = '';
@@ -660,41 +891,146 @@ function submitReturn() {
   const condition = document.getElementById('productCondition').value;
   if (!reason) { alert('반품사유를 선택하세요.'); return; }
   if (!condition) { alert('제품상태를 선택하세요.'); return; }
+  if (!selectedOrders.length) { alert('선택된 주문이 없습니다.'); return; }
 
   // 사전 확인 다이얼로그 (직원 실수 예방용 안전장치)
   const confirmMsg = '다음 정보로 반품신청을 진행합니다.\n\n' +
+    '선택 건수: ' + selectedOrders.length + '건\n' +
     '반품사유: ' + reason + '\n' +
     '반품귀책: ' + reasonToFault[reason] + '\n' +
     '제품상태: ' + condition + '\n\n' +
     '진행하시겠습니까?';
   if (!confirm(confirmMsg)) return;
 
-  // 그리드 행에 반품사유·귀책 채우기 (직원 즉시 확인용)
-  if (currentOrder) {
-    currentOrder.claimReason = reason;
-    currentOrder.claimFault = reasonToFault[reason];
-    currentOrder.returnRequestDate = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    currentOrder.returnStatus = '반품요청';
-    currentOrder.processorId = 'soomchoi';
-    renderAutoShowList();
-  }
+  // 선택된 모든 주문에 반품사유·귀책 일괄 적용
+  const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const orderNos = selectedOrders.map(o => o.orderNo);
+  selectedOrders.forEach(o => {
+    o.claimReason = reason;
+    o.claimFault = reasonToFault[reason];
+    o.returnRequestDate = now;
+    o.returnStatus = '반품요청';
+    o.processorId = 'soomchoi';
+  });
+  renderAutoShowList();
 
-  alert('반품신청이 제출되었습니다.\n주문번호: ' + currentOrder.orderNo);
+  alert('반품신청이 제출되었습니다.\n주문번호: ' + orderNos.join(', '));
   closeModal();
 }
 
 
-function selectCollectionRow(rowEl, status) {
-  rowEl.querySelector('input[type="radio"]').checked = true;
-  document.querySelectorAll('tbody tr').forEach(tr => tr.classList.remove('selected'));
-  rowEl.classList.add('selected');
+function toggleCollectionRow(rowEl) {
+  const cb = rowEl.querySelector('input.collectionSelect');
+  if (!cb || cb.disabled) return;
+  cb.checked = !cb.checked;
+  if (cb.checked) rowEl.classList.add('selected');
+  else rowEl.classList.remove('selected');
+  refreshCollectionState();
+}
 
+function toggleSelectAllCollection(headCb) {
+  document.querySelectorAll('input.collectionSelect:not(:disabled)').forEach(cb => {
+    cb.checked = headCb.checked;
+    const row = cb.closest('tr');
+    if (cb.checked) row.classList.add('selected');
+    else row.classList.remove('selected');
+  });
+  refreshCollectionState();
+}
+
+function refreshCollectionState() {
+  const all = document.querySelectorAll('input.collectionSelect:not(:disabled)');
+  const checked = Array.from(all).filter(cb => cb.checked);
   const btn = document.getElementById('btnReCollection');
-  if (status === '수거실패' || status === '수거취소') {
-    btn.disabled = false;
-  } else {
-    btn.disabled = true;
+  btn.disabled = checked.length === 0;
+  btn.textContent = checked.length > 1
+    ? `재수거지시 (${checked.length}건)`
+    : '재수거지시';
+
+  const head = document.getElementById('selectAllCollection');
+  if (head && all.length) {
+    head.checked = checked.length === all.length;
+    head.indeterminate = checked.length > 0 && checked.length < all.length;
   }
+}
+
+// ───────── 회송스캔 ─────────
+// 주문번호 / 송장번호 각각 별도 인풋. 키별 lookup 분리
+// 단포: 원송장번호 그대로 → 송장번호로 스캔 가능
+// 합포장: 린코스가 주문번호 단위로 재포장·라벨 재부착 → 주문번호로만 스캔 가능
+const recoveryByOrderNo = {
+  '4407000402': { routeTo: '반품신청', origCourier: '한진택배', origInvoice: '420987654321' },
+  '4407000404': { routeTo: '반품신청', origCourier: 'CJ대한통운', origInvoice: '610998877665' },
+  '4407000276': { routeTo: '반품 및 수거관리', origCourier: '한진택배', origInvoice: '460819199002' },
+  '4407000138': { routeTo: '반품 및 수거관리', origCourier: 'CJ대한통운', origInvoice: '696858571344' },
+  // 합포장 케이스 — 송장번호 매칭 불가
+  '4407000500': { routeTo: '반품신청', origCourier: '롯데택배', origInvoice: '-' }
+};
+const recoveryByInvoice = {
+  '420987654321': { orderNo: '4407000402', routeTo: '반품신청', origCourier: '한진택배' },
+  '610998877665': { orderNo: '4407000404', routeTo: '반품신청', origCourier: 'CJ대한통운' },
+  '460819199002': { orderNo: '4407000276', routeTo: '반품 및 수거관리', origCourier: '한진택배' },
+  '696858571344': { orderNo: '4407000138', routeTo: '반품 및 수거관리', origCourier: 'CJ대한통운' }
+};
+
+const recoveryList = [];
+
+function scanRecovery(mode) {
+  const isOrder = mode === 'order';
+  const input = document.getElementById(isOrder ? 'recoveryOrderInput' : 'recoveryInvoiceInput');
+  const msg = document.getElementById('scanResultMsg');
+  const key = input.value.trim();
+  if (!key) { msg.textContent = ''; return; }
+
+  const match = isOrder ? recoveryByOrderNo[key] : recoveryByInvoice[key];
+  if (!match) {
+    msg.style.color = '#b91c1c';
+    msg.textContent = isOrder
+      ? '✗ 일치하는 라자다 주문이 없습니다 (분실관리에서 확인 필요)'
+      : '✗ 일치하는 송장번호가 없습니다 (합포장 건은 주문번호로 스캔)';
+    input.value = '';
+    return;
+  }
+
+  const orderNo = isOrder ? key : match.orderNo;
+  msg.style.color = match.routeTo === '반품신청' ? '#047857' : '#1d4ed8';
+  msg.textContent = `✓ ${orderNo} → ${match.routeTo}로 자동 분류 완료`;
+
+  // 단건씩 누적 (띡 띡 띡)
+  recoveryList.unshift({
+    orderNo,
+    origCourier: match.origCourier || '-',
+    origInvoice: isOrder ? (match.origInvoice || '-') : key
+  });
+  renderRecoveryList();
+
+  input.value = '';
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+}
+
+function renderRecoveryList() {
+  const body = document.getElementById('recoveryListBody');
+  if (!recoveryList.length) {
+    body.innerHTML = '<tr class="empty-tbody"><td colspan="4">스캔하면 이 자리에 정보가 표시됩니다.</td></tr>';
+    return;
+  }
+  body.innerHTML = recoveryList.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${r.orderNo}</td>
+      <td>${r.origCourier}</td>
+      <td>${r.origInvoice}</td>
+    </tr>
+  `).join('');
+}
+
+// ───────── 수거관리 단축 버튼 ─────────
+function setDateRange(days) {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  document.getElementById('reqDateFrom').value = from.toISOString().slice(0, 10);
+  document.getElementById('reqDateTo').value = to.toISOString().slice(0, 10);
 }
 
 document.addEventListener('DOMContentLoaded', renderAutoShowList);
