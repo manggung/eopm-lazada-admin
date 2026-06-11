@@ -35,6 +35,12 @@ tbody tr { cursor: pointer; }
 tbody tr:nth-child(even) { background: #fbfbfd; }
 tbody tr:hover { background: #eef2f8; }
 tbody tr.selected { background: #dbeafe; }
+tbody tr.scanned-to-request { background: #fee2e2 !important; }
+tbody tr.scanned-to-request:hover { background: #fecaca !important; }
+tbody tr.scanned-to-collection { background: #fef3c7 !important; }
+tbody tr.scanned-to-collection:hover { background: #fde68a !important; }
+tbody tr.scanned-to-request.selected,
+tbody tr.scanned-to-collection.selected { background: #dbeafe !important; }
 .badge { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 700; border: 1px solid rgba(0,0,0,.08); }
 .badge-blue { background: #dbeafe; color: #1d4ed8; }
 .badge-green { background: #d1fae5; color: #047857; }
@@ -89,8 +95,17 @@ tbody tr.selected { background: #dbeafe; }
 
   <!-- ───────── 섹션 1: 회송스캔 ───────── -->
   <div class="card">
-    <h2 class="section-title">1. 회송스캔</h2>
-    <p class="section-desc">라자다 → 린코스 회송 화물 스캔. 스캔 결과에 따라 <strong>반품가능 건은 아래 [2. 반품신청]</strong>으로, <strong>이미 반품처리된 건은 [3. 반품 및 수거관리]</strong>로 자동 분류됩니다.</p>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+      <div style="flex:1;">
+        <h2 class="section-title">1. 회송스캔</h2>
+        <p class="section-desc">라자다 → 린코스 회송 화물 스캔. 스캔 결과에 따라 <strong>반품가능 건은 아래 [2. 반품신청]</strong>으로, <strong>이미 반품처리된 건은 [3. 반품 및 수거관리]</strong>로 자동 분류됩니다.</p>
+      </div>
+      <div style="font-size:11px; color:#6b7280; text-align:left; line-height:1.7; border:1px dashed #c5c7cf; padding:8px 12px; background:#fafafa; min-width:240px;">
+        <div style="font-weight:700; color:#374151; margin-bottom:4px;">시연용 테스트 주문번호</div>
+        반품신청으로 가는 건: <strong style="color:#b91c1c;">4407000402</strong><br>
+        반품 및 수거관리로 가는 건: <strong style="color:#a16207;">4407000302</strong>
+      </div>
+    </div>
 
     <div class="row">
       <div class="label">주문번호</div>
@@ -100,11 +115,6 @@ tbody tr.selected { background: #dbeafe; }
       <input type="text" id="recoveryInvoiceInput" class="w-320" placeholder="송장번호 스캔/입력 후 Enter (단포 건만)" onkeydown="if(event.key==='Enter') scanRecovery('invoice')">
       <button class="btn-primary" onclick="scanRecovery('invoice')">스캔</button>
     </div>
-    <div class="row">
-      <div class="label"></div>
-      <span id="scanResultMsg" style="font-weight:700;"></span>
-    </div>
-
     <div class="table-wrap" style="margin-top:8px; max-height:240px; overflow-y:auto;">
       <table>
         <thead>
@@ -137,7 +147,7 @@ tbody tr.selected { background: #dbeafe; }
       <div class="list-title">반품신청 필요 목록 (총 <span id="totalCount">0</span>건)</div>
     </div>
 
-    <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+    <div class="table-wrap" style="max-height:240px; overflow-y:auto;">
       <table>
         <thead style="position:sticky; top:0; z-index:1;">
           <tr>
@@ -145,7 +155,6 @@ tbody tr.selected { background: #dbeafe; }
             <th>반품상태</th>
             <th>주문번호</th>
             <th>주문유형</th>
-            <th>판매자 ID</th>
             <th>상품명</th>
             <th>문제유형</th>
             <th>문제건 메모</th>
@@ -160,7 +169,7 @@ tbody tr.selected { background: #dbeafe; }
           </tr>
         </thead>
         <tbody id="resultBody">
-          <tr class="empty-tbody"><td colspan="16">반품신청 필요 건이 없습니다.</td></tr>
+          <tr class="empty-tbody"><td colspan="15">반품신청 필요 건이 없습니다.</td></tr>
         </tbody>
       </table>
     </div>
@@ -189,43 +198,41 @@ tbody tr.selected { background: #dbeafe; }
     </div>
     <div class="row">
       <div class="label">주문번호</div>
-      <input type="text" class="w-320" placeholder="주문번호 입력">
+      <input type="text" id="filterOrderNo" class="w-320" placeholder="주문번호 입력">
     </div>
     <div class="row">
-      <div class="label">판매자 ID</div>
-      <input type="text" class="w-320" placeholder="판매자 ID 입력">
-      <select><option>전체 주문유형</option><option>Lazada</option><option>Daraz</option></select>
+      <div class="label">주문유형</div>
+      <select id="filterOrderType"><option value="전체">전체 주문유형</option><option value="Lazada">Lazada</option><option value="Daraz">Daraz</option></select>
     </div>
     <div class="row">
       <div class="label">수거지시여부</div>
       <div class="checkbox-group">
-        <label><input type="checkbox" checked> 전체</label>
-        <label><input type="checkbox"> 수거지시</label>
-        <label><input type="checkbox"> 수거지시안함</label>
+        <label><input type="checkbox" class="filter-pickup-all" checked onclick="onAllCheck(this, '.filter-pickup')"> 전체</label>
+        <label><input type="checkbox" class="filter-pickup" data-value="수거지시" onclick="onItemCheck('.filter-pickup-all', '.filter-pickup')"> 수거지시</label>
+        <label><input type="checkbox" class="filter-pickup" data-value="수거지시안함" onclick="onItemCheck('.filter-pickup-all', '.filter-pickup')"> 수거지시안함</label>
       </div>
     </div>
     <div class="row">
       <div class="label">수거상태</div>
       <div class="checkbox-group">
-        <label><input type="checkbox" checked> 전체</label>
-        <label><input type="checkbox"> 수거요청준비</label>
-        <label><input type="checkbox"> 수거요청</label>
-        <label><input type="checkbox"> 수거중</label>
-        <label><input type="checkbox"> 수거취소</label>
-        <label><input type="checkbox"> 수거실패</label>
-        <label><input type="checkbox"> 수거완료</label>
+        <label><input type="checkbox" class="filter-status-all" checked onclick="onAllCheck(this, '.filter-status')"> 전체</label>
+        <label><input type="checkbox" class="filter-status" data-value="수거요청준비" onclick="onItemCheck('.filter-status-all', '.filter-status')"> 수거요청준비</label>
+        <label><input type="checkbox" class="filter-status" data-value="수거요청" onclick="onItemCheck('.filter-status-all', '.filter-status')"> 수거요청</label>
+        <label><input type="checkbox" class="filter-status" data-value="수거중" onclick="onItemCheck('.filter-status-all', '.filter-status')"> 수거중</label>
+        <label><input type="checkbox" class="filter-status" data-value="수거취소" onclick="onItemCheck('.filter-status-all', '.filter-status')"> 수거취소</label>
+        <label><input type="checkbox" class="filter-status" data-value="수거실패" onclick="onItemCheck('.filter-status-all', '.filter-status')"> 수거실패</label>
+        <label><input type="checkbox" class="filter-status" data-value="수거완료" onclick="onItemCheck('.filter-status-all', '.filter-status')"> 수거완료</label>
       </div>
     </div>
     <div class="row">
-      <button class="btn-primary">검색</button>
-      <button class="btn-secondary">초기화</button>
+      <button class="btn-primary" onclick="searchCollection()">검색</button>
+      <button class="btn-secondary" onclick="resetCollection()">초기화</button>
     </div>
 
     <div class="list-header">
-      <div class="list-title">반품 및 수거관리 목록 (총 4건)</div>
+      <div class="list-title">반품 및 수거관리 목록 (총 5건)</div>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button class="btn-primary btn-small" id="btnReCollection" disabled>재수거지시</button>
-        <button class="btn-secondary btn-small">엑셀다운</button>
+        <button class="btn-primary btn-small" id="btnReCollection" disabled onclick="doReCollection()">재수거지시</button>
       </div>
     </div>
 
@@ -236,14 +243,13 @@ tbody tr.selected { background: #dbeafe; }
             <th style="width:60px; text-align:center;"><input type="checkbox" id="selectAllCollection" onclick="toggleSelectAllCollection(this)" title="전체선택"></th>
             <th>주문번호</th>
             <th>주문유형</th>
-            <th>판매자 ID</th>
             <th>상품명</th>
             <th>반품사유</th>
             <th>반품귀책</th>
             <th>반품신청일시</th>
             <th>수거지시여부</th>
             <th>수거상태</th>
-            <th>수거요청일</th>
+            <th>수거요청일시</th>
             <th>원택배사</th>
             <th>원송장번호</th>
             <th>반품택배사</th>
@@ -254,19 +260,18 @@ tbody tr.selected { background: #dbeafe; }
             <th>재수거처리자</th>
           </tr>
         </thead>
-        <tbody>
-          <tr onclick="toggleCollectionRow(this)" data-status="수거중">
+        <tbody id="collectionListBody">
+          <tr onclick="toggleCollectionRow(this)" data-status="수거중" data-orderno="4407000138" data-pickup="수거지시" data-reqdate="2026-03-02">
             <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407000138</td>
             <td>Lazada</td>
-            <td>seller02</td>
             <td>현대 캐스퍼...</td>
             <td>(라자다)창고 포장불량</td>
             <td>구매자</td>
             <td>2026-03-02 14:00</td>
             <td>수거지시</td>
             <td>수거중</td>
-            <td>2026-03-03</td>
+            <td>2026-03-03 09:00</td>
             <td>CJ</td>
             <td>696858571344</td>
             <td>CJ</td>
@@ -276,18 +281,17 @@ tbody tr.selected { background: #dbeafe; }
             <td>LAZADA</td>
             <td>-</td>
           </tr>
-          <tr onclick="toggleCollectionRow(this)" data-status="수거실패">
+          <tr onclick="toggleCollectionRow(this)" data-status="수거실패" data-orderno="4407000276" data-pickup="수거지시" data-reqdate="2026-03-03">
             <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407000276</td>
             <td>Lazada</td>
-            <td>seller03</td>
             <td>메탈카드봇...</td>
             <td>상품 파손/훼손</td>
             <td>판매자</td>
             <td>2026-03-03 11:00</td>
             <td>수거지시</td>
             <td>수거실패</td>
-            <td>2026-03-04</td>
+            <td>2026-03-04 09:30</td>
             <td>한진</td>
             <td>460819199002</td>
             <td>한진</td>
@@ -297,18 +301,17 @@ tbody tr.selected { background: #dbeafe; }
             <td>lincos02</td>
             <td>-</td>
           </tr>
-          <tr onclick="toggleCollectionRow(this)" data-status="수거취소">
+          <tr onclick="toggleCollectionRow(this)" data-status="수거취소" data-orderno="4407000301" data-pickup="수거지시" data-reqdate="2026-03-03">
             <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407000301</td>
             <td>Lazada</td>
-            <td>seller04</td>
             <td>쿠진아트 핸드블렌더...</td>
             <td>(라자다)상품이 도착하지 않고 있음</td>
             <td>구매자</td>
             <td>2026-03-03 15:00</td>
             <td>수거지시</td>
             <td>수거취소</td>
-            <td>2026-03-05</td>
+            <td>2026-03-05 10:00</td>
             <td>한진</td>
             <td>460819200001</td>
             <td>한진</td>
@@ -318,11 +321,30 @@ tbody tr.selected { background: #dbeafe; }
             <td>LAZGS13</td>
             <td>lincos03</td>
           </tr>
-          <tr onclick="toggleCollectionRow(this)" data-status="수거요청준비">
+          <tr onclick="toggleCollectionRow(this)" data-status="수거요청" data-orderno="4407000302" data-pickup="수거지시" data-reqdate="2026-06-07">
+            <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
+            <td>4407000302</td>
+            <td>Lazada</td>
+            <td>여성 트렌치코트 베이지 M</td>
+            <td>(라자다)수출통관실패</td>
+            <td>구매자</td>
+            <td>2026-06-07 09:30</td>
+            <td>수거지시</td>
+            <td>수거요청</td>
+            <td>2026-06-08 09:00</td>
+            <td>롯데</td>
+            <td>550111222333</td>
+            <td>롯데</td>
+            <td>550111222345</td>
+            <td>N</td>
+            <td>-</td>
+            <td>LAZADA</td>
+            <td>-</td>
+          </tr>
+          <tr onclick="toggleCollectionRow(this)" data-status="수거요청준비" data-orderno="4407001000" data-pickup="수거지시안함" data-reqdate="2026-03-04">
             <td><input type="checkbox" class="collectionSelect" onclick="event.stopPropagation(); refreshCollectionState();"></td>
             <td>4407001000</td>
             <td>Lazada</td>
-            <td>ssgmall</td>
             <td>품시 스루타이...</td>
             <td>(라자다)구매자변심</td>
             <td>구매자</td>
@@ -486,18 +508,18 @@ const mockOrders = {
     orderNo: '4407000402', orderType: 'Lazada', sellerId: 'seller09',
     productName: '주방용품 4인 세트',
     lincosInboundScanDate: '2026-05-29 14:20',
-    lincosArrivalScanDate: '-',
+    lincosArrivalScanDate: '2026-05-29 17:00',
     lazadaInboundDate: '-',
     orderStatus: '배송중', orderStatusClass: 'badge-blue',
-    returnScanDate: '-',
+    returnScanDate: '2026-06-03 09:00',
     returnable: true,
     returnRequestDate: '-', returnStatus: '반품가능', processorId: '-',
     canCancel: false,
     autoPickup: true,
     originCourier: '한진택배',
     invoiceNo: '420987654321',
-    problemType: '상품누락',
-    problemMemo: '주문 상품 미입고, 박스 내 다른 상품만 확인됨',
+    problemType: '-',
+    problemMemo: '-',
     autoShow: true
   },
   '4407000403': {
@@ -732,16 +754,16 @@ let currentOrder = null;
 let selectedOrders = [];
 let currentList = [];
 // 데모용: 그리드에 보여줄 5건만 지정 (문제건 등록 3건 + 회송스캔 2건 mix)
-const visibleOrderNos = ['4407001000', '4407000403', '4407000402', '4407000408', '4407000407'];
+const visibleOrderNos = ['4407001000', '4407000403', '4407000402', '4407000408', '4407000407', '4407000401', '4407000405', '4407000406', '4407000410', '4407000414'];
 
 function renderOrderRow(order) {
+  const scannedCls = scannedRoute.has(order.orderNo) ? ' class="scanned-to-request"' : '';
   return `
-    <tr onclick="selectRow(this, '${order.orderNo}', event)">
+    <tr${scannedCls} onclick="selectRow(this, '${order.orderNo}', event)">
       <td><input type="checkbox" class="orderSelect" data-orderno="${order.orderNo}" onclick="event.stopPropagation(); toggleRow(this);"></td>
       <td>${order.returnStatus}</td>
       <td>${order.orderNo}</td>
       <td>${order.orderType}</td>
-      <td>${order.sellerId}</td>
       <td>${order.productName}</td>
       <td>${order.problemType || '-'}</td>
       <td>${order.problemMemo || '-'}</td>
@@ -759,7 +781,10 @@ function renderOrderRow(order) {
 
 function renderAutoShowList() {
   resetActionBar();
-  currentList = visibleOrderNos.map(no => mockOrders[no]).filter(Boolean);
+  const list = visibleOrderNos.map(no => mockOrders[no]).filter(Boolean);
+  // 회송스캔으로 들어온 건을 그리드 맨 위로 끌어올림
+  list.sort((a, b) => (scannedRoute.has(a.orderNo) ? 0 : 1) - (scannedRoute.has(b.orderNo) ? 0 : 1));
+  currentList = list;
   renderList();
 }
 
@@ -963,6 +988,7 @@ const recoveryByOrderNo = {
   '4407000404': { routeTo: '반품신청', origCourier: 'CJ대한통운', origInvoice: '610998877665' },
   '4407000276': { routeTo: '반품 및 수거관리', origCourier: '한진택배', origInvoice: '460819199002' },
   '4407000138': { routeTo: '반품 및 수거관리', origCourier: 'CJ대한통운', origInvoice: '696858571344' },
+  '4407000302': { routeTo: '반품 및 수거관리', origCourier: '롯데택배', origInvoice: '550111222333' },
   // 합포장 케이스 — 송장번호 매칭 불가
   '4407000500': { routeTo: '반품신청', origCourier: '롯데택배', origInvoice: '-' }
 };
@@ -970,31 +996,26 @@ const recoveryByInvoice = {
   '420987654321': { orderNo: '4407000402', routeTo: '반품신청', origCourier: '한진택배' },
   '610998877665': { orderNo: '4407000404', routeTo: '반품신청', origCourier: 'CJ대한통운' },
   '460819199002': { orderNo: '4407000276', routeTo: '반품 및 수거관리', origCourier: '한진택배' },
-  '696858571344': { orderNo: '4407000138', routeTo: '반품 및 수거관리', origCourier: 'CJ대한통운' }
+  '696858571344': { orderNo: '4407000138', routeTo: '반품 및 수거관리', origCourier: 'CJ대한통운' },
+  '550111222333': { orderNo: '4407000302', routeTo: '반품 및 수거관리', origCourier: '롯데택배' }
 };
 
 const recoveryList = [];
+const scannedRoute = new Map(); // orderNo -> '반품신청' | '반품 및 수거관리'
 
 function scanRecovery(mode) {
   const isOrder = mode === 'order';
   const input = document.getElementById(isOrder ? 'recoveryOrderInput' : 'recoveryInvoiceInput');
-  const msg = document.getElementById('scanResultMsg');
   const key = input.value.trim();
-  if (!key) { msg.textContent = ''; return; }
+  if (!key) return;
 
   const match = isOrder ? recoveryByOrderNo[key] : recoveryByInvoice[key];
   if (!match) {
-    msg.style.color = '#b91c1c';
-    msg.textContent = isOrder
-      ? '✗ 일치하는 라자다 주문이 없습니다 (분실관리에서 확인 필요)'
-      : '✗ 일치하는 송장번호가 없습니다 (합포장 건은 주문번호로 스캔)';
     input.value = '';
     return;
   }
 
   const orderNo = isOrder ? key : match.orderNo;
-  msg.style.color = match.routeTo === '반품신청' ? '#047857' : '#1d4ed8';
-  msg.textContent = `✓ ${orderNo} → ${match.routeTo}로 자동 분류 완료`;
 
   // 단건씩 누적 (띡 띡 띡)
   recoveryList.unshift({
@@ -1004,8 +1025,24 @@ function scanRecovery(mode) {
   });
   renderRecoveryList();
 
+  // 어디로 갔는지 행 강조 + 상단으로 정렬
+  scannedRoute.set(orderNo, match.routeTo);
+  if (match.routeTo === '반품신청') {
+    renderAutoShowList();
+  } else {
+    highlightCollectionRow(orderNo);
+  }
+
   input.value = '';
-  setTimeout(() => { msg.textContent = ''; }, 4000);
+}
+
+function highlightCollectionRow(orderNo) {
+  const tbody = document.getElementById('collectionListBody');
+  if (!tbody) return;
+  const row = tbody.querySelector(`tr[data-orderno="${orderNo}"]`);
+  if (!row) return;
+  row.classList.add('scanned-to-collection');
+  tbody.prepend(row);
 }
 
 function renderRecoveryList() {
@@ -1022,6 +1059,122 @@ function renderRecoveryList() {
       <td>${r.origInvoice}</td>
     </tr>
   `).join('');
+}
+
+// ───────── 재수거지시 ─────────
+function doReCollection() {
+  const checked = Array.from(document.querySelectorAll('#collectionListBody input.collectionSelect:checked'));
+
+  if (checked.length === 0) {
+    alert('재수거지시할 건을 선택하세요.');
+    return;
+  }
+  if (checked.length > 1) {
+    alert('재수거지시는 한 건씩만 가능합니다. (택배사 발송 단위)');
+    return;
+  }
+
+  const row = checked[0].closest('tr');
+  const status = row.dataset.status;
+  const reason = (row.children[4].textContent || '').trim();
+
+  if (reason === '(라자다)신용전용') {
+    alert('(라자다)신용전용 건은 지정수거지시(CJ 신용) 분기라 재수거지시가 불가합니다.');
+    return;
+  }
+  if (status !== '수거실패' && status !== '수거취소') {
+    alert(`현재 수거상태는 "${status}" 입니다.\n재수거지시는 수거실패 또는 수거취소 건만 가능합니다.`);
+    return;
+  }
+
+  const orderNo = row.dataset.orderno;
+  if (!confirm(`주문번호 ${orderNo} 건에 재수거지시를 요청합니다.\n진행하시겠습니까?`)) return;
+
+  const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  row.children[8].textContent = '수거요청준비';   // 수거상태
+  row.children[13].textContent = '-';              // 반품송장번호 (재발급 대기)
+  row.children[14].textContent = 'Y';              // 재수거요청여부
+  row.children[15].textContent = now;              // 재수거요청일시
+  row.children[17].textContent = 'soomchoi';       // 재수거처리자
+  row.dataset.status = '수거요청준비';
+  checked[0].checked = false;
+  row.classList.remove('selected');
+  refreshCollectionState();
+
+  alert(`주문번호 ${orderNo} 재수거지시가 완료되었습니다.`);
+}
+
+// ───────── 수거관리 검색·필터 ─────────
+function onAllCheck(allCb, itemSelector) {
+  // "전체" 체크 시 개별 항목 해제. "전체" 해제는 무효(다른 게 켜져있지 않으면 다시 켜둠)
+  if (allCb.checked) {
+    document.querySelectorAll(itemSelector).forEach(cb => cb.checked = false);
+  } else {
+    const anyItem = Array.from(document.querySelectorAll(itemSelector)).some(cb => cb.checked);
+    if (!anyItem) allCb.checked = true;
+  }
+}
+
+function onItemCheck(allSelector, itemSelector) {
+  const allCb = document.querySelector(allSelector);
+  const items = document.querySelectorAll(itemSelector);
+  const anyChecked = Array.from(items).some(cb => cb.checked);
+  allCb.checked = !anyChecked;
+}
+
+function getCheckedValues(itemSelector, allSelector) {
+  const allCb = document.querySelector(allSelector);
+  if (allCb && allCb.checked) return null; // null = 필터 무시
+  return Array.from(document.querySelectorAll(itemSelector))
+    .filter(cb => cb.checked)
+    .map(cb => cb.dataset.value);
+}
+
+function searchCollection() {
+  const orderNo = document.getElementById('filterOrderNo').value.trim();
+  const orderType = document.getElementById('filterOrderType').value;
+  const dateFrom = document.getElementById('reqDateFrom').value;
+  const dateTo = document.getElementById('reqDateTo').value;
+  const pickupVals = getCheckedValues('.filter-pickup', '.filter-pickup-all');
+  const statusVals = getCheckedValues('.filter-status', '.filter-status-all');
+
+  const rows = document.querySelectorAll('#collectionListBody tr');
+  let visibleCount = 0;
+  rows.forEach(row => {
+    let match = true;
+    if (orderNo && row.dataset.orderno !== orderNo) match = false;
+    if (match && orderType && orderType !== '전체') {
+      const rowType = row.children[2] && row.children[2].textContent.trim();
+      if (rowType !== orderType) match = false;
+    }
+    if (match && pickupVals && pickupVals.length && !pickupVals.includes(row.dataset.pickup)) match = false;
+    if (match && statusVals && statusVals.length && !statusVals.includes(row.dataset.status)) match = false;
+    if (match && dateFrom && row.dataset.reqdate < dateFrom) match = false;
+    if (match && dateTo && row.dataset.reqdate > dateTo) match = false;
+
+    row.style.display = match ? '' : 'none';
+    if (match) visibleCount++;
+  });
+
+  // 목록 카운트 업데이트
+  const titleEl = document.querySelector('.card:last-of-type .list-title');
+  if (titleEl) titleEl.textContent = `반품 및 수거관리 목록 (총 ${visibleCount}건)`;
+}
+
+function resetCollection() {
+  document.getElementById('filterOrderNo').value = '';
+  document.getElementById('filterOrderType').value = '전체';
+  document.getElementById('reqDateFrom').value = '';
+  document.getElementById('reqDateTo').value = '';
+  document.querySelector('.filter-pickup-all').checked = true;
+  document.querySelectorAll('.filter-pickup').forEach(cb => cb.checked = false);
+  document.querySelector('.filter-status-all').checked = true;
+  document.querySelectorAll('.filter-status').forEach(cb => cb.checked = false);
+
+  const rows = document.querySelectorAll('#collectionListBody tr');
+  rows.forEach(row => row.style.display = '');
+  const titleEl = document.querySelector('.card:last-of-type .list-title');
+  if (titleEl) titleEl.textContent = `반품 및 수거관리 목록 (총 ${rows.length}건)`;
 }
 
 // ───────── 수거관리 단축 버튼 ─────────
